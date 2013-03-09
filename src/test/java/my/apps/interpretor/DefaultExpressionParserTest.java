@@ -22,7 +22,6 @@ public class DefaultExpressionParserTest {
         assertEquals(110, result);
     }
 
-
     @Test
     public void testParse_normal_doubleMultiply() throws Exception {
         String exp = "abc * cde * fgh";
@@ -80,5 +79,47 @@ public class DefaultExpressionParserTest {
         assertEquals(26, result);
     }
 
+    @Test
+    public void testParse_normal_multiplePlus() throws Exception {
+        String exp = "a + b + c - d";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 1);
+        contextMap.put("b", 2);
+        contextMap.put("c", 3);
+        contextMap.put("d", 4);
 
+        int result = node.evalute(contextMap);
+        assertEquals(2, result);
+    }
+
+    @Test
+    public void testParse_normal_withParenthese() throws Exception {
+        String exp = "a * ( b + c )";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 2);
+        contextMap.put("b", 3);
+        contextMap.put("c", 5);
+
+        System.out.println(node);
+        int result = node.evalute(contextMap);
+        assertEquals(16, result);
+    }
+
+    @Test
+    public void testParse_normal_withRecursiveParenthese() throws Exception {
+        String exp = "a * ( ( b + c ) * ( e + f ) )";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 2);
+        contextMap.put("b", 3);
+        contextMap.put("c", 4);
+        contextMap.put("e", 5);
+        contextMap.put("f", 6);
+
+        System.out.println(node);
+        int result = node.evalute(contextMap);
+        assertEquals(154, result);
+    }
 }

@@ -6,6 +6,7 @@ import my.apps.interpretor.tokens.Token;
 import my.apps.interpretor.tokens.TokenTypes;
 import my.apps.interpretor.tokens.Tokenizer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
@@ -16,51 +17,130 @@ public class DefaultExpressionParser implements ExpressionParser {
     @Override
     public Node parse(String text) {
         List<Token> tokens = tokenizer.tokenize(text);
+        return doParse(tokens);
+    }
+
+    protected Node doParse(List<Token> tokens) {
         Stack<Token> tokenStack = new Stack<Token>();
         Stack<Node> nodeStack = new Stack<Node>();
-        for ( Token token : tokens ) {
-            if ( TokenTypes.Variable == token.getTokenType() ) {
-                if ( nodeStack.isEmpty() ) {
-                    Node variableNode = createVariableNode(token.getText());
-                    nodeStack.push(variableNode);
-                    continue;
-                }
+        for ( int i = 0 ; i < tokens.size() ; i ++ ) {
+            Token currentToken = tokens.get(i);
+            TokenTypes currentTokenType = currentToken.getTokenType();
+            Node recursiveNode = null;
+            if ( TokenTypes.StartParentheses == currentToken.getTokenType() ) {
+                List<Token> recursiveTokens = new ArrayList<Token>();
+                i ++;
+                int level = 0;
+                while ( ! ( TokenTypes.EndParentheses == tokens.get(i).getTokenType() && level == 0 ) ) {
+                    boolean endParentheseNotFound = i + 1 == tokens.size();
+                    if ( endParentheseNotFound ) {
+                        throw new RuntimeException("end parenthese not found: " + tokens);
+                    }
 
-                Token opeToken = tokenStack.peek();
-                if ( OperatorFactory.requireDifferedEvaluation(opeToken.getText()) ) {
-                    tokenStack.push(token);
-                    continue;
-                }
+                    if ( TokenTypes.StartParentheses == tokens.get(i).getTokenType() ) {
+                        level ++;
+                    }
 
-                    tokenStack.pop();
-                    boolean existsVarToken = tokenStack.size() > 0 && tokenStack.peek().getTokenType() == TokenTypes.Variable;
-                    OperatorNode opeNode = OperatorFactory.createOperator(opeToken.getText());
-                    Node leftNode = null;
-                    Node rightNode = createVariableNode(token.getText());
-                    if ( existsVarToken ) {
-                        Token leftVarToken = tokenStack.pop();
-                    leftNode = createVariableNode(leftVarToken.getText());
-                } else {
-                    leftNode = nodeStack.peek();
-                }
-                opeNode.setLeft(leftNode);
-                opeNode.setRight(rightNode);
-                nodeStack.push(opeNode);
+                    if ( TokenTypes.EndParentheses == tokens.get(i).getTokenType() ) {
+                        level --;
+                    }
 
-                boolean canConstructDifferedVars = tokenStack.size() > 0;
-                if ( canConstructDifferedVars ) {
-                    createNodesOnTokenStack(nodeStack, tokenStack);
+                    recursiveTokens.add(tokens.get(i));
+                    i ++;
                 }
+                recursiveNode = doParse(recursiveTokens);
+                currentTokenType = TokenTypes.Variable;
+            }
 
+            if ( TokenTypes.Variable == currentTokenType ) {
+                handleVariable(tokenStack, nodeStack, currentToken, recursiveNode);
                 continue;
             }
 
-            if ( TokenTypes.Operator == token.getTokenType() ) {
-                tokenStack.push(token);
+            if ( TokenTypes.Operator == currentTokenType ) {
+                tokenStack.push(currentToken);
             }
         }
 
+        boolean canConstructDifferedVars = tokenStack.size() > 0;
+        if ( canConstructDifferedVars ) {
+            constructDifferedVars(tokenStack, nodeStack);
+        }
+
         return nodeStack.pop();
+    }
+
+    private void constructDifferedVars(Stack<Token> tokenStack, Stack<Node> nodeStack) {
+        Node lastNode = nodeStack.peek();
+        Node currentNode = null;
+        while ( ! tokenStack.isEmpty() ) {
+            Node rightVarNode = null;
+            boolean requireNewNode = currentNode == null;
+            if  ( requireNewNode ) {
+                Token rightVarToken = tokenStack.pop();
+                rightVarNode = createVariableNode(rightVarToken.getText());
+            } else {
+                rightVarNode = currentNode;
+            }
+
+            Token opeToken = tokenStack.pop();
+            OperatorNode opeNode = OperatorFactory.createOperator(opeToken.getText());
+
+            Node leftVarNode = null;
+            boolean useLastNode = tokenStack.isEmpty();
+            if ( useLastNode ) {
+                leftVarNode = lastNode;
+            } else {
+                Token leftVarToken = tokenStack.pop();
+                leftVarNode = createVariableNode(leftVarToken.getText());
+            }
+
+            opeNode.setLeft(leftVarNode);
+            opeNode.setRight(rightVarNode);
+            currentNode = opeNode;
+        }
+
+        nodeStack.push(currentNode);
+    }
+
+    private void handleVariable(Stack<Token> tokenStack, Stack<Node> nodeStack, Token token, Node recursiveNode) {
+        if ( nodeStack.isEmpty() ) {
+            if ( recursiveNode != null ) {
+                nodeStack.push(recursiveNode);
+            } else {
+                Node variableNode = createVariableNode(token.getText());
+                nodeStack.push(variableNode);
+            }
+            return;
+        }
+
+        Token opeToken = tokenStack.peek();
+        if ( OperatorFactory.requireDifferedEvaluation(opeToken.getText()) ) {
+            tokenStack.push(token);
+            return;
+        }
+
+        tokenStack.pop();
+        boolean existsVarToken = tokenStack.size() > 0 && tokenStack.peek().getTokenType() == TokenTypes.Variable;
+        OperatorNode opeNode = OperatorFactory.createOperator(opeToken.getText());
+        Node leftNode = null;
+        Node rightNode = recursiveNode == null ? createVariableNode(token.getText()) : recursiveNode;
+        if ( existsVarToken ) {
+            Token leftVarToken = tokenStack.pop();
+            leftNode = createVariableNode(leftVarToken.getText());
+        } else {
+            leftNode = nodeStack.peek();
+        }
+        opeNode.setLeft(leftNode);
+        opeNode.setRight(rightNode);
+        nodeStack.push(opeNode);
+
+        boolean canConstructDifferedVars = tokenStack.size() > 0;
+        if ( canConstructDifferedVars ) {
+            createNodesOnTokenStack(nodeStack, tokenStack);
+        }
+
+        return;
     }
 
     private void createNodesOnTokenStack(Stack<Node> nodeStack, Stack<Token> tokenStack) {
