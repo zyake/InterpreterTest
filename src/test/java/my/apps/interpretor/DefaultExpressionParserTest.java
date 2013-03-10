@@ -108,7 +108,7 @@ public class DefaultExpressionParserTest {
     }
 
     @Test
-    public void testParse_normal_withRecursiveParenthese() throws Exception {
+    public void testParse_normal_withRecursiveParentheses() throws Exception {
         String exp = "a * ( ( b + c ) * ( e + f ) )";
         Node node = new DefaultExpressionParser().parse(exp);
         Map<String, Integer> contextMap = new HashMap<String, Integer>();
@@ -121,5 +121,57 @@ public class DefaultExpressionParserTest {
         System.out.println(node);
         int result = node.evalute(contextMap);
         assertEquals(154, result);
+    }
+
+    @Test
+    public void testParse_normal_mod() throws Exception {
+        String exp = "a % b";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 5);
+        contextMap.put("b", 3);
+
+        System.out.println(node);
+        int result = node.evalute(contextMap);
+        assertEquals(2, result);
+    }
+
+    @Test
+    public void testParse_normal_bitAnd() throws Exception {
+        String exp = "a & b";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 7);
+        contextMap.put("b", 3);
+
+        System.out.println(node);
+        int result = node.evalute(contextMap);
+        assertEquals(3, result);
+    }
+
+    @Test
+    public void testParse_normal_bitOr() throws Exception {
+        String exp = "a | b";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 7);
+        contextMap.put("b", 3);
+
+        System.out.println(node);
+        int result = node.evalute(contextMap);
+        assertEquals(7, result);
+    }
+
+    @Test
+    public void testParse_normal_bitXor() throws Exception {
+        String exp = "a ^ b";
+        Node node = new DefaultExpressionParser().parse(exp);
+        Map<String, Integer> contextMap = new HashMap<String, Integer>();
+        contextMap.put("a", 7);
+        contextMap.put("b", 3);
+
+        System.out.println(node);
+        int result = node.evalute(contextMap);
+        assertEquals(4, result);
     }
 }

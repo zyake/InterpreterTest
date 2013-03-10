@@ -48,7 +48,11 @@ public class DefaultExpressionParser implements ExpressionParser {
                     recursiveTokens.add(tokens.get(i));
                     i ++;
                 }
+
+                // parse parentheses recursively
                 recursiveNode = doParse(recursiveTokens);
+
+                // use parentheses as variable
                 currentTokenType = TokenTypes.Variable;
             }
 
@@ -78,13 +82,13 @@ public class DefaultExpressionParser implements ExpressionParser {
             boolean requireNewNode = currentNode == null;
             if  ( requireNewNode ) {
                 Token rightVarToken = tokenStack.pop();
-                rightVarNode = createVariableNode(rightVarToken.getText());
+                rightVarNode = NodeFactory.createVariableNode(rightVarToken.getText());
             } else {
                 rightVarNode = currentNode;
             }
 
             Token opeToken = tokenStack.pop();
-            OperatorNode opeNode = OperatorFactory.createOperator(opeToken.getText());
+            OperatorNode opeNode = NodeFactory.createOperator(opeToken.getText());
 
             Node leftVarNode = null;
             boolean useLastNode = tokenStack.isEmpty();
@@ -92,7 +96,7 @@ public class DefaultExpressionParser implements ExpressionParser {
                 leftVarNode = lastNode;
             } else {
                 Token leftVarToken = tokenStack.pop();
-                leftVarNode = createVariableNode(leftVarToken.getText());
+                leftVarNode = NodeFactory.createVariableNode(leftVarToken.getText());
             }
 
             opeNode.setLeft(leftVarNode);
@@ -108,26 +112,26 @@ public class DefaultExpressionParser implements ExpressionParser {
             if ( recursiveNode != null ) {
                 nodeStack.push(recursiveNode);
             } else {
-                Node variableNode = createVariableNode(token.getText());
+                Node variableNode = NodeFactory.createVariableNode(token.getText());
                 nodeStack.push(variableNode);
             }
             return;
         }
 
         Token opeToken = tokenStack.peek();
-        if ( OperatorFactory.requireDifferedEvaluation(opeToken.getText()) ) {
+        if ( NodeFactory.requireDifferedEvaluation(opeToken.getText()) ) {
             tokenStack.push(token);
             return;
         }
 
         tokenStack.pop();
         boolean existsVarToken = tokenStack.size() > 0 && tokenStack.peek().getTokenType() == TokenTypes.Variable;
-        OperatorNode opeNode = OperatorFactory.createOperator(opeToken.getText());
+        OperatorNode opeNode = NodeFactory.createOperator(opeToken.getText());
         Node leftNode = null;
-        Node rightNode = recursiveNode == null ? createVariableNode(token.getText()) : recursiveNode;
+        Node rightNode = recursiveNode == null ? NodeFactory.createVariableNode(token.getText()) : recursiveNode;
         if ( existsVarToken ) {
             Token leftVarToken = tokenStack.pop();
-            leftNode = createVariableNode(leftVarToken.getText());
+            leftNode = NodeFactory.createVariableNode(leftVarToken.getText());
         } else {
             leftNode = nodeStack.peek();
         }
@@ -148,7 +152,7 @@ public class DefaultExpressionParser implements ExpressionParser {
             // 直接ノードスタック上の最上位ノードとの合成ノードを作成する。
             Node topNode = nodeStack.pop();
             Token topOpeToken = tokenStack.pop();
-            OperatorNode conjuctionOpeNode = OperatorFactory.createOperator(topOpeToken.getText());
+            OperatorNode conjuctionOpeNode = NodeFactory.createOperator(topOpeToken.getText());
             conjuctionOpeNode.setLeft(nodeStack.peek());
             conjuctionOpeNode.setRight(topNode);
             nodeStack.push(topNode);
@@ -160,7 +164,7 @@ public class DefaultExpressionParser implements ExpressionParser {
         while ( ! tokenStack.isEmpty() ) {
             Node rightNode = nodeStack.pop();
             Token opeToken = tokenStack.pop();
-            OperatorNode opeNode = OperatorFactory.createOperator(opeToken.getText());
+            OperatorNode opeNode = NodeFactory.createOperator(opeToken.getText());
 
             Node leftNode = null;
             boolean useExistingNode = tokenStack.isEmpty();
@@ -168,15 +172,11 @@ public class DefaultExpressionParser implements ExpressionParser {
                 leftNode = nodeStack.peek();
             } else {
                 Token leftToken = tokenStack.pop();
-                leftNode = createVariableNode(leftToken.getText());
+                leftNode = NodeFactory.createVariableNode(leftToken.getText());
             }
             opeNode.setLeft(leftNode);
             opeNode.setRight(rightNode);
             nodeStack.push(opeNode);
         }
-    }
-
-    private Node createVariableNode(String text) {
-        return new VariableNode(text);
     }
 }

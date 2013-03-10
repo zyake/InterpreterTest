@@ -1,6 +1,6 @@
 package my.apps.interpretor.tokens;
 
-import my.apps.interpretor.nodes.OperatorFactory;
+import my.apps.interpretor.nodes.NodeFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ public class DefaultTokenizer implements Tokenizer {
                 continue;
             }
 
-            boolean isOperator = OperatorFactory.isOperator(text.charAt(pos));
+            boolean isOperator = NodeFactory.isOperator(text.charAt(pos));
             if ( isOperator ) {
                 Token opToken = createOperatorToken(text.charAt(pos));
                 tokens.add(opToken);
